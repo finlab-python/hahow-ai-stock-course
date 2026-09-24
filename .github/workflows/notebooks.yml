@@ -1,0 +1,54 @@
+# 每週從頭執行全部 notebook（QUICK_RUN），任何一本失敗就紅燈。
+#
+# 需要在 repo 的 Settings → Secrets and variables → Actions 設定三個 secret：
+#   FINLAB_REFRESH_TOKEN、FINLAB_SESSION_ID、FINLAB_API_KEY
+# 取得方式：在自己電腦登入 FinLab 後執行 `python -m finlab token --env`。
+# finlab 2.0.21 的 `finlab.login()` 會直接讀這三個環境變數完成登入（已實測）。
+# 舊的 FINLAB_API_TOKEN 在 2.0.21 已標示淘汰，而且 `finlab.login()` 不會讀它，會改走瀏覽器登入而在 CI 卡住。
+name: notebooks
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'  # 每週一 09:00（台北時間）
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  run-notebooks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      FINLAB_REFRESH_TOKEN: ${{ secrets.FINLAB_REFRESH_TOKEN }}
+      FINLAB_SESSION_ID: ${{ secrets.FINLAB_SESSION_ID }}
+      FINLAB_API_KEY: ${{ secrets.FINLAB_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Check notebook format
+        run: python tests/check_notebooks.py --executed
+
+      - name: Check FinLab credentials
+        run: |
+          if [ -z "$FINLAB_REFRESH_TOKEN" ] || [ -z "$FINLAB_SESSION_ID" ] || [ -z "$FINLAB_API_KEY" ]; then
+            echo "::error::缺少 FINLAB_REFRESH_TOKEN / FINLAB_SESSION_ID / FINLAB_API_KEY secret，無法登入 FinLab。"
+            exit 1
+          fi
+
+      - name: Run all notebooks (QUICK_RUN)
+        run: python tests/run_notebooks.py --quick
+
+      - name: Upload executed notebooks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: executed-notebooks
+          path: build/executed/

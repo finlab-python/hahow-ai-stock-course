@@ -1,0 +1,14 @@
+# 本機環境：Python 3.11 或 3.12，執行 pip install -r requirements.txt
+finlab==2.0.21
+ta-lib==0.8.1
+pandas>=2.2,<3
+numpy>=1.26
+scikit-learn>=1.5
+lightgbm>=4.5
+xgboost>=2.1
+tensorflow>=2.17
+matplotlib>=3.8
+seaborn>=0.13
+pyfolio-reloaded==0.9.9
+requests>=2.31
+jupyterlab>=4

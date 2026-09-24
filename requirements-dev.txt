@@ -1,0 +1,5 @@
+# 驗證用：從頭執行全部 notebook（tests/run_notebooks.py）
+-r requirements.txt
+papermill>=2.6
+nbformat>=5.10
+ipykernel>=6.29
